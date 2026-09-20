@@ -1,0 +1,29 @@
+{
+  "name": "eapmcounter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shows live eAPM from Age of Empires II: Definitive Edition as a browser source overlay",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "check-growth": "tsx scripts/check-growth.ts",
+    "simulate": "tsx scripts/simulate.ts",
+    "players": "tsx scripts/players.ts",
+    "stats": "tsx scripts/stats.ts",
+    "e2e": "tsx scripts/e2e.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsx scripts/build.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}

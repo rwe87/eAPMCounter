@@ -1,0 +1,35 @@
+# eAPMCounter settings
+# One line per setting: key = value. Lines starting with # are comments.
+# Restart the program after a change.
+
+# Own name in the game. Leave empty to let the program take the name that appears
+# most often in the recent recordings and print it at startup.
+playerName = rOb
+
+# Port of the local server. The overlay page is at http://localhost:<port>/overlay
+port = 8123
+
+# Length of the time window in seconds.
+windowSeconds = 60
+
+# game = game time like CaptureAge, real = wall clock time.
+timeBase = game
+
+# Folder holding the .aoe2record files. Leave empty to search automatically under
+# C:\Users\<name>\Games\Age of Empires 2 DE\<Steam ID>\savegame
+savegameDir =
+
+# How often the file is checked, in milliseconds.
+pollMs = 250
+
+# After this many seconds without the file growing, the game counts as over.
+idleSeconds = 180
+
+# Action types that are not counted (ids from the recording, separated by commas).
+# 103 game settings, 27 save, 32 chapter marker, 15 spectate,
+# 10 and 53 AI commands, 255 end of game.
+excludedActions = 103, 27, 32, 15, 10, 53, 255
+
+# Look of the number in the overlay. Reload the browser source in OBS after a change.
+overlayFontSize = 64px
+overlayColor = #ffffff
