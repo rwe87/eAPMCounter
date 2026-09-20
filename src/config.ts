@@ -77,7 +77,7 @@ idleSeconds = ${DEFAULTS.idleSeconds}
 
 # Action types that are not counted (ids from the recording, separated by commas).
 # 103 game settings, 27 save, 32 chapter marker, 15 spectate,
-# 10 and 53 AI commands, 255 end of game.
+# 10 and 53 AI commands, 255 end of game, 41 meaning undocumented.
 excludedActions = ${DEFAULTS.excludedActions.join(", ")}
 
 # Look of the number in the overlay. Reload the browser source in OBS after a change.

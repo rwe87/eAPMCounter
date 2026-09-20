@@ -33,7 +33,7 @@ test("the default text yields valid default values", () => {
   assert.equal(cfg.port, 8123);
   assert.equal(cfg.playerName, "");
   assert.equal(cfg.timeBase, "game");
-  assert.deepEqual(cfg.excludedActions, [103, 27, 32, 15, 10, 53, 255]);
+  assert.deepEqual(cfg.excludedActions, [103, 27, 32, 15, 10, 53, 255, 41]);
 });
 
 test("invalid values produce a readable error", () => {

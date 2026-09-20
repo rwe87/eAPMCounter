@@ -45,7 +45,7 @@ Restart the program after a change, then reload the browser source in OBS.
 | `savegameDir` | folder holding the `.aoe2record` files | empty, searched under `Games\Age of Empires 2 DE\<Steam ID>\savegame` |
 | `pollMs` | how often the file is checked, in milliseconds | 250 |
 | `idleSeconds` | without the file growing, the game counts as over after this many seconds | 180 |
-| `excludedActions` | action types that are not counted | 103, 27, 32, 15, 10, 53, 255 |
+| `excludedActions` | action types that are not counted | 103, 27, 32, 15, 10, 53, 255, 41 |
 | `overlayFontSize` | font size of the number | 64px |
 | `overlayColor` | color of the number | #ffffff |
 
@@ -59,6 +59,11 @@ Every action of the own player in the recording, except game settings (103), sav
 chapter marker (32), spectate (15), AI commands (10, 53) and end of game (255). Camera
 movement and plain selection are not stored as actions in the file, so they never count.
 That matches the approach CaptureAge takes.
+
+Type 41, DE_TRANSFORM, is excluded as well. What it stands for is not documented: the
+parser this one is ported from guesses "autoscout enable?" and leaves the type out of its
+own list of player inputs. Over seven measured games it made up 3.5 % of the count.
+Removing 41 from `excludedActions` brings it back.
 
 eAPM = actions in the last 60 seconds of game time. During the first minute the value is
 scaled to the elapsed time, starting at 10 seconds.

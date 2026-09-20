@@ -41,6 +41,11 @@ export function actionName(id: number): string {
 /**
  * Actions that do not count as an effective action: game settings, saving,
  * chapter marker, spectating, AI commands and the end of the game.
+ *
+ * DE_TRANSFORM is excluded for a different reason. What it stands for is not
+ * documented: parse_rec.ts guesses "autoscout enable?" and drops the type from its
+ * own list of player inputs, as the only type besides the end of the game. It made
+ * up 3.5 % of the counted actions over seven measured games.
  */
 export const DEFAULT_EXCLUDED_ACTIONS: number[] = [
   Action.GAME,
@@ -50,4 +55,5 @@ export const DEFAULT_EXCLUDED_ACTIONS: number[] = [
   Action.AI_ORDER,
   Action.AI_COMMAND,
   Action.POSTGAME,
+  Action.DE_TRANSFORM,
 ];
