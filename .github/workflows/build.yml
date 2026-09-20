@@ -80,6 +80,9 @@ jobs:
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
+          # This job never checks the repository out, so gh cannot read the repository
+          # from a git remote and has to be told which one it is.
+          GH_REPO: ${{ github.repository }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
             "eAPMCounter-${GITHUB_REF_NAME}-windows-x64.zip" \
