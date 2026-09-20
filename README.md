@@ -114,14 +114,33 @@ project root. That one carries a personal player name.
 
 ## Automated build
 
-`.github/workflows/build.yml` runs on every push to `main`, on every pull request and on
-demand. It runs on a Windows runner, because the EXE is a copy of the runner's own
-`node.exe`. The job type-checks, runs the tests, builds the package and uploads it as the
-artifact `eAPMCounter-windows-x64`. Downloading that artifact gives a ZIP with the EXE,
-`config.txt`, `README.txt` and the license notes.
+`.github/workflows/build.yml` runs on every push to `main`, on every pull request, on
+every tag starting with `v` and on demand. It runs on a Windows runner, because the EXE
+is a copy of the runner's own `node.exe`. The job type-checks, runs the tests, builds the
+package and uploads it as the artifact `eAPMCounter-windows-x64`. Downloading that
+artifact gives a ZIP with the EXE, `config.txt`, `README.txt` and the license notes.
 
 The tests that need real recordings skip themselves on the runner, because there is no
 savegame folder there. The rest run.
+
+## Releasing
+
+Push a tag that starts with `v`:
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+The build runs as usual, then a second job publishes a release under that tag and hangs
+`eAPMCounter-v0.1.0-windows-x64.zip` on it. That ZIP is the package the build job just
+made, so nothing is built twice. Release notes are generated from the commits since the
+previous tag.
+
+A release download stays; an artifact is deleted after 90 days. That is the reason for
+the second job.
+
+The tag is independent of the `version` field in `package.json`. Nothing reads that
+field, and it is not baked into the EXE.
 
 ## Known limits
 

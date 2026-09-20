@@ -1,13 +1,17 @@
 name: build
 
 # The EXE is a copy of the runner's own node.exe with the program appended, so the
-# job has to run on Windows. A Linux runner would produce a Linux binary.
+# build has to run on Windows. A Linux runner would produce a Linux binary.
 
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -49,3 +53,35 @@ jobs:
           name: eAPMCounter-windows-x64
           path: dist/
           if-no-files-found: error
+
+  # A tag starting with v publishes a release and hangs the package on it, so the
+  # download outlives the 90 days an artifact is kept. The package is the one the
+  # build job just made; nothing is built twice.
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: eAPMCounter-windows-x64
+          path: package
+
+      - name: Pack the ZIP
+        run: |
+          cd package
+          zip -r "../eAPMCounter-${GITHUB_REF_NAME}-windows-x64.zip" .
+          cd ..
+          unzip -l "eAPMCounter-${GITHUB_REF_NAME}-windows-x64.zip"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "eAPMCounter-${GITHUB_REF_NAME}-windows-x64.zip" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes
