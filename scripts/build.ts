@@ -15,6 +15,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, wr
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inject } from "postject";
+import { DEFAULT_CONFIG_TEXT } from "../src/config.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
@@ -67,13 +68,24 @@ await inject(exe, "NODE_SEA_BLOB", readFileSync(join(dist, "sea-prep.blob")), {
 rmSync(join(dist, "main.cjs"));
 rmSync(join(dist, "sea-prep.blob"));
 rmSync(seaConfigPath);
-if (existsSync(join(root, "config.txt"))) copyFileSync(join(root, "config.txt"), join(dist, "config.txt"));
+
+// The settings that ship with the build are the defaults, never the developer's own
+// config.txt: that one carries a personal player name.
+writeFileSync(join(dist, "config.txt"), DEFAULT_CONFIG_TEXT);
+
+// The EXE carries code ported from two MIT projects, and MIT asks for the notice to
+// travel with every copy. So the file goes into the package, not just into the repo.
+copyFileSync(join(root, "THIRD_PARTY_LICENSES.md"), join(dist, "THIRD_PARTY_LICENSES.md"));
+
 writeFileSync(
   join(dist, "README.txt"),
   [
     "eAPMCounter for Age of Empires II: Definitive Edition",
     "",
-    "1. Start eAPMCounter.exe. On the first start it creates config.txt next to itself.",
+    "Shows the effective actions per minute (eAPM) of the last game minute on stream.",
+    "",
+    "1. Start eAPMCounter.exe. On the first start it reads config.txt next to itself",
+    "   and guesses your in-game name from your recent recordings.",
     "2. Put your own in-game name into config.txt if the guessed name is wrong.",
     "3. In OBS add a source of type Browser and set its URL to",
     "   http://localhost:8123/overlay",
@@ -81,8 +93,12 @@ writeFileSync(
     "4. eAPMCounter.exe has to run while you stream.",
     "",
     "http://localhost:8123/ shows the current state and the URL again.",
+    "http://localhost:8123/overlay?bg=green shows the overlay in a normal browser.",
     "",
-    "License notes for borrowed code are in THIRD_PARTY_LICENSES.md in the source project.",
+    "Needs 64-bit Windows 10 or newer. No installation, no extra runtime.",
+    "",
+    "The program contains code ported from two MIT-licensed projects.",
+    "See THIRD_PARTY_LICENSES.md next to this file.",
   ].join("\r\n"),
 );
 

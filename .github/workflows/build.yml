@@ -1,0 +1,51 @@
+name: build
+
+# The EXE is a copy of the runner's own node.exe with the program appended, so the
+# job has to run on Windows. A Linux runner would produce a Linux binary.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      # The tests that need real recordings skip themselves when the savegame folder
+      # is missing, which it is on a runner. The rest run.
+      - name: Tests
+        run: npm test
+
+      - name: Build the EXE
+        run: npm run build
+
+      - name: Check the package
+        shell: pwsh
+        run: |
+          $expected = @('eAPMCounter.exe', 'config.txt', 'README.txt', 'THIRD_PARTY_LICENSES.md')
+          $actual = (Get-ChildItem dist -File | Select-Object -ExpandProperty Name | Sort-Object)
+          $missing = $expected | Where-Object { $_ -notin $actual }
+          if ($missing) { throw "missing from dist: $($missing -join ', ')" }
+          Get-ChildItem dist -File | Select-Object Name, Length | Format-Table -AutoSize
+
+      # Downloading this artifact gives a .zip holding the four files above.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: eAPMCounter-windows-x64
+          path: dist/
+          if-no-files-found: error

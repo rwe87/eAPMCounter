@@ -91,7 +91,7 @@ double-click `start.cmd`.
 |---|---|
 | `npm start` | run the program from source |
 | `npm test` | tests for the parser, counter, watcher and settings, including real recordings |
-| `npm run build` | builds `dist/eAPMCounter.exe` together with `config.txt` and `README.txt` |
+| `npm run build` | builds the package in `dist/`: the EXE, `config.txt`, `README.txt` and the license notes |
 | `npm run players` | shows the player lists of the recent recordings |
 | `npm run stats` | average eAPM of the recent games, for comparison with CaptureAge |
 | `npm run check-growth` | prints the size of the newest recording every 2 s |
@@ -108,6 +108,20 @@ into one file, Node turns that into a blob, and postject appends it to a copy of
 `node.exe`. The three overlay files go into the EXE as well. The warning
 "The signature seems corrupted" during the build is expected: `node.exe` is signed, the
 copy with the blob is not.
+
+The `config.txt` that ships in `dist/` holds the default settings, not the one from the
+project root. That one carries a personal player name.
+
+## Automated build
+
+`.github/workflows/build.yml` runs on every push to `main`, on every pull request and on
+demand. It runs on a Windows runner, because the EXE is a copy of the runner's own
+`node.exe`. The job type-checks, runs the tests, builds the package and uploads it as the
+artifact `eAPMCounter-windows-x64`. Downloading that artifact gives a ZIP with the EXE,
+`config.txt`, `README.txt` and the license notes.
+
+The tests that need real recordings skip themselves on the runner, because there is no
+savegame folder there. The rest run.
 
 ## Known limits
 
