@@ -32,6 +32,8 @@ export interface Config {
   overlayFontSize: string;
   /** Color of the number in the overlay, for example "#ffffff". */
   overlayColor: string;
+  /** Look for a newer release at startup and install it for the next start. */
+  autoUpdate: boolean;
 }
 
 export const PROJECT_ROOT = BASE_DIR;
@@ -49,6 +51,7 @@ const DEFAULTS: Config = {
   excludedActions: DEFAULT_EXCLUDED_ACTIONS,
   overlayFontSize: "64px",
   overlayColor: "#ffffff",
+  autoUpdate: true,
 };
 
 export const DEFAULT_CONFIG_TEXT = `# eAPMCounter settings
@@ -90,6 +93,11 @@ excludedActions = ${DEFAULTS.excludedActions.join(", ")}
 # Look of the number in the overlay. Reload the browser source in OBS after a change.
 overlayFontSize = ${DEFAULTS.overlayFontSize}
 overlayColor = ${DEFAULTS.overlayColor}
+
+# Look for a newer version at startup. A new one is downloaded while the program runs
+# and takes over the next time you start it, never in the middle of a stream.
+# on or off.
+autoUpdate = ${DEFAULTS.autoUpdate ? "on" : "off"}
 `;
 
 /** Splits the text of config.txt into keys and values. */
@@ -138,6 +146,14 @@ function num(values: Record<string, string>, key: string, fallback: number): num
   return n;
 }
 
+function flag(values: Record<string, string>, key: string, fallback: boolean): boolean {
+  const raw = (values[key] ?? "").trim().toLowerCase();
+  if (!raw) return fallback;
+  if (["on", "yes", "true", "1"].includes(raw)) return true;
+  if (["off", "no", "false", "0"].includes(raw)) return false;
+  throw new Error(`setting "${key}" must be on or off, not "${values[key]}"`);
+}
+
 export function configFromValues(values: Record<string, string>): Config {
   const timeBase = (values.timeBase || DEFAULTS.timeBase).toLowerCase();
   if (timeBase !== "game" && timeBase !== "real") {
@@ -162,6 +178,7 @@ export function configFromValues(values: Record<string, string>): Config {
     excludedActions: excluded,
     overlayFontSize: values.overlayFontSize || DEFAULTS.overlayFontSize,
     overlayColor: values.overlayColor || DEFAULTS.overlayColor,
+    autoUpdate: flag(values, "autoUpdate", DEFAULTS.autoUpdate),
   };
 }
 

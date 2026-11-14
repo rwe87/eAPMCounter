@@ -35,19 +35,23 @@ jobs:
       - name: Tests
         run: npm test
 
+      # Only a tag build carries a version. Without one the EXE calls itself "dev" and
+      # never looks for an update, which is right for a build off a branch.
       - name: Build the EXE
+        env:
+          EAPM_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
         run: npm run build
 
       - name: Check the package
         shell: pwsh
         run: |
-          $expected = @('eAPMCounter.exe', 'config.txt', 'README.txt', 'THIRD_PARTY_LICENSES.md')
+          $expected = @('eAPMCounter.exe', 'eAPMCounter.exe.sha256', 'config.txt', 'README.txt', 'THIRD_PARTY_LICENSES.md')
           $actual = (Get-ChildItem dist -File | Select-Object -ExpandProperty Name | Sort-Object)
           $missing = $expected | Where-Object { $_ -notin $actual }
           if ($missing) { throw "missing from dist: $($missing -join ', ')" }
           Get-ChildItem dist -File | Select-Object Name, Length | Format-Table -AutoSize
 
-      # Downloading this artifact gives a .zip holding the four files above.
+      # Downloading this artifact gives a .zip holding the files above.
       - uses: actions/upload-artifact@v7
         with:
           name: eAPMCounter-windows-x64
@@ -77,6 +81,8 @@ jobs:
           cd ..
           unzip -l "eAPMCounter-${GITHUB_REF_NAME}-windows-x64.zip"
 
+      # The bare EXE and its checksum go up beside the ZIP. The program updates itself
+      # from those two, so it needs no way to unpack an archive.
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,5 +92,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             "eAPMCounter-${GITHUB_REF_NAME}-windows-x64.zip" \
+            "package/eAPMCounter.exe" \
+            "package/eAPMCounter.exe.sha256" \
             --title "$GITHUB_REF_NAME" \
             --generate-notes

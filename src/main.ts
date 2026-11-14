@@ -2,6 +2,8 @@ import { CONFIG_PATH, loadConfigFile } from "./config.ts";
 import { IS_SEA } from "./paths.ts";
 import { guessPlayer } from "./rec/guess.ts";
 import { startServer } from "./server.ts";
+import { applyPendingUpdate, checkAndStage } from "./update.ts";
+import { VERSION } from "./version.ts";
 import { RecWatcher } from "./watcher.ts";
 
 function stamp(): string {
@@ -25,6 +27,13 @@ function fail(msg: string): never {
 }
 
 function main(): void {
+  // A version downloaded earlier takes over here, before anything else is opened.
+  if (applyPendingUpdate(log)) {
+    process.exit(0);
+  }
+
+  log(`eAPMCounter ${VERSION}`);
+
   const { config: cfg, created } = loadConfigFile();
   if (created) log(`settings created: ${CONFIG_PATH}`);
   else log(`settings:     ${CONFIG_PATH}`);
@@ -65,6 +74,10 @@ function main(): void {
     log(`status page:  http://localhost:${cfg.port}/`);
     log(`OBS browser source URL: http://localhost:${cfg.port}/overlay`);
     log("running. Close the window or press Ctrl+C to stop.");
+
+    // Only now, so a slow or unreachable GitHub never delays the overlay.
+    if (cfg.autoUpdate) void checkAndStage(log);
+    else log("update: switched off in the settings");
   });
 
   setInterval(() => {

@@ -11,6 +11,7 @@
  */
 import { build } from "esbuild";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,10 +22,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
 const exe = join(dist, "eAPMCounter.exe");
 
+/**
+ * The version baked into the EXE. The release workflow passes the tag. A build from a
+ * working copy has no tag, and "dev" switches the update check off, which is what a
+ * working copy should do.
+ */
+const version = process.env.EAPM_VERSION?.trim() || "dev";
+
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
-console.log("1/4 bundling the program");
+console.log(`1/4 bundling the program as version ${version}`);
 await build({
   entryPoints: [join(root, "src", "main.ts")],
   bundle: true,
@@ -32,8 +40,11 @@ await build({
   format: "cjs",
   target: "node26",
   outfile: join(dist, "main.cjs"),
-  // The bundled program has no import.meta.url. paths.ts then uses process.execPath.
-  define: { "import.meta.url": '""' },
+  define: {
+    // The bundled program has no import.meta.url. paths.ts then uses process.execPath.
+    "import.meta.url": '""',
+    __EAPM_VERSION__: JSON.stringify(version),
+  },
   logLevel: "warning",
 });
 
@@ -102,5 +113,11 @@ writeFileSync(
   ].join("\r\n"),
 );
 
+// The updater downloads this file directly rather than the ZIP, so it needs no way to
+// unpack one. The checksum is what it verifies the download against.
+const sha256 = createHash("sha256").update(readFileSync(exe)).digest("hex");
+writeFileSync(join(dist, "eAPMCounter.exe.sha256"), `${sha256}  eAPMCounter.exe\n`);
+
 const mb = (statSync(exe).size / 1024 / 1024).toFixed(1);
-console.log(`done: ${exe} (${mb} MB)`);
+console.log(`done: ${exe} (${mb} MB), version ${version}`);
+console.log(`sha256: ${sha256}`);

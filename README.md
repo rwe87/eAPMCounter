@@ -51,10 +51,28 @@ Restart the program after a change, then reload the browser source in OBS.
 | `excludedActions` | action types that are not counted | 103, 27, 32, 15, 10, 53, 255, 41 |
 | `overlayFontSize` | font size of the number | 64px |
 | `overlayColor` | color of the number | #ffffff |
+| `autoUpdate` | look for a newer version at startup, `on` or `off` | on |
 
 Changing the port also means changing the URL of the browser source in OBS.
 
 The environment variables `EAPM_SAVEGAME_DIR` and `EAPM_PORT` override the file.
+
+## Updating itself
+
+At startup the program asks GitHub for the newest release. When that release is newer
+than the running one, it downloads the EXE, checks it against the SHA-256 the release
+publishes, and parks it next to the current one as `eAPMCounter.exe.new`. Nothing about
+the running program changes, so a stream is never interrupted.
+
+The next time you start the program, the parked version takes the place of the old one
+and starts. The replaced file is deleted the start after that.
+
+Windows refuses to overwrite a program while it runs, but it does allow renaming one,
+which is why the swap happens between two starts rather than during one.
+
+`autoUpdate = off` in `config.txt` switches the whole thing off. A build from source
+calls itself `dev` and never checks, because there is nothing sensible to compare a
+working copy against.
 
 ## How the program knows who you are
 
@@ -111,7 +129,7 @@ double-click `start.cmd`.
 |---|---|
 | `npm start` | run the program from source |
 | `npm test` | tests for the parser, counter, watcher and settings, including real recordings |
-| `npm run build` | builds the package in `dist/`: the EXE, `config.txt`, `README.txt` and the license notes |
+| `npm run build` | builds the package in `dist/`: the EXE, its checksum, `config.txt`, `README.txt` and the license notes |
 | `npm run players` | shows the player lists of the recent recordings |
 | `npm run stats` | average eAPM of the recent games, for comparison with CaptureAge |
 | `npm run check-growth` | prints the size of the newest recording every 2 s |
@@ -169,4 +187,5 @@ field, and it is not baked into the EXE.
 - The file only holds actions the game processed. It therefore does not arrive at exactly
   the same number as counting key presses would.
 
-License notes for borrowed code: `THIRD_PARTY_LICENSES.md`.
+This project is under the MIT license, see `LICENSE`. It carries code ported from two
+other MIT projects, see `THIRD_PARTY_LICENSES.md`.

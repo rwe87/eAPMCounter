@@ -1,6 +1,8 @@
 import { createServer, type Server } from "node:http";
 import type { Config } from "./config.ts";
 import { readAsset } from "./paths.ts";
+import { UPDATE_REPO_URL, stagedUpdateExists } from "./update.ts";
+import { VERSION } from "./version.ts";
 import type { WatcherState } from "./watcher.ts";
 
 /**
@@ -43,7 +45,10 @@ export function startServer(cfg: Config, getState: () => WatcherState): Server {
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.end(
         [
-          "eAPMCounter is running.",
+          `eAPMCounter ${VERSION} is running.`,
+          stagedUpdateExists()
+            ? `A newer version is downloaded and starts the next time you open the program. ${UPDATE_REPO_URL}`
+            : "",
           "",
           `In game:        ${s.inGame ? "yes" : "no"}`,
           `eAPM:           ${s.eapm ?? "-"}`,

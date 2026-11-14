@@ -57,6 +57,7 @@ test("watcher: new file, follow along, rename, next game", { skip: !rec }, () =>
       excludedActions: DEFAULT_EXCLUDED_ACTIONS,
       overlayFontSize: "64px",
       overlayColor: "#ffffff",
+      autoUpdate: false,
     };
     const logs: string[] = [];
     const w = new RecWatcher(cfg, (m) => logs.push(m), () => clock);
