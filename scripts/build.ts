@@ -30,7 +30,7 @@ await build({
   bundle: true,
   platform: "node",
   format: "cjs",
-  target: "node24",
+  target: "node26",
   outfile: join(dist, "main.cjs"),
   // The bundled program has no import.meta.url. paths.ts then uses process.execPath.
   define: { "import.meta.url": '""' },
