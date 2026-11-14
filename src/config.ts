@@ -14,6 +14,8 @@ export interface Config {
   savegameDir: string;
   /** Own name in the game. Empty: guessed from the recent recordings. */
   playerName: string;
+  /** Own profile id. Beats playerName when set, because it survives a rename. */
+  playerProfileId: number;
   /** Port of the local HTTP server. */
   port: number;
   /** Length of the time window in seconds. */
@@ -38,6 +40,7 @@ export const CONFIG_PATH = join(BASE_DIR, "config.txt");
 const DEFAULTS: Config = {
   savegameDir: "",
   playerName: "",
+  playerProfileId: 0,
   port: 8123,
   windowSeconds: 60,
   timeBase: "game",
@@ -52,8 +55,12 @@ export const DEFAULT_CONFIG_TEXT = `# eAPMCounter settings
 # One line per setting: key = value. Lines starting with # are comments.
 # Restart the program after a change.
 
-# Own name in the game. Leave empty to let the program take the name that appears
-# most often in the recent recordings and print it at startup.
+# Who you are. Leave both empty to let the program work it out from your recordings
+# and print what it found at startup.
+#
+# The profile id is the reliable one: it belongs to your account and does not change
+# when you rename yourself in the game. It wins when both are set.
+playerProfileId = ${DEFAULTS.playerProfileId || ""}
 playerName = ${DEFAULTS.playerName}
 
 # Port of the local server. The overlay page is at http://localhost:<port>/overlay
@@ -146,6 +153,7 @@ export function configFromValues(values: Record<string, string>): Config {
   return {
     savegameDir: values.savegameDir || "",
     playerName: values.playerName || "",
+    playerProfileId: num(values, "playerProfileId", DEFAULTS.playerProfileId),
     port: num(values, "port", DEFAULTS.port),
     windowSeconds: num(values, "windowSeconds", DEFAULTS.windowSeconds),
     timeBase,

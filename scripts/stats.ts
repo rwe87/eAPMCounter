@@ -10,7 +10,7 @@ import { basename, join } from "node:path";
 import { loadConfig } from "../src/config.ts";
 import { actionName } from "../src/rec/actions.ts";
 import { BodyParser } from "../src/rec/body.ts";
-import { findPlayerNumber, parseHeader } from "../src/rec/header.ts";
+import { findPlayerByProfileId, findPlayerNumber, parseHeader } from "../src/rec/header.ts";
 
 const cfg = loadConfig();
 const limit = Number(process.argv[2] ?? 5);
@@ -31,7 +31,7 @@ for (const path of files) {
     console.log(`\n${basename(path)}\n  header not readable: ${(err as Error).message}`);
     continue;
   }
-  const me = findPlayerNumber(header.players, cfg.playerName);
+  const me = findPlayerByProfileId(header.players, cfg.playerProfileId) ?? findPlayerNumber(header.players, cfg.playerName);
   const parser = new BodyParser({ fileOffset: header.bodyOffset });
   const events = parser.feed(data.subarray(header.bodyOffset));
 
@@ -58,7 +58,7 @@ for (const path of files) {
     console.log(`  ${p.number}: ${(p.name || "AI " + p.aiName).padEnd(24)} ${String(n).padStart(5)} actions  ${(n / minutes).toFixed(1).padStart(6)} eAPM${mark}`);
   }
   if (me === null) {
-    console.log(`  player name "${cfg.playerName}" does not appear here.`);
+    console.log(`  you do not appear in this recording.`);
     continue;
   }
   const top = [...perType.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);

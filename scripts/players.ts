@@ -1,6 +1,6 @@
 /**
- * Prints the player lists of the newest recordings.
- * Use it to find the name for "playerName" in config.txt.
+ * Prints the player lists of the newest recordings and marks the perspective each one
+ * was written from. Use it to find the value for "playerProfileId" in config.txt.
  *
  * Run:  npm run players            (newest 5)
  *       npm run players -- 20      (newest 20)
@@ -8,6 +8,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { loadConfig } from "../src/config.ts";
+import { guessPlayer } from "../src/rec/guess.ts";
 import { parseHeader } from "../src/rec/header.ts";
 
 const cfg = loadConfig();
@@ -19,7 +20,6 @@ const files = readdirSync(cfg.savegameDir)
   .sort((a, b) => b.mtime - a.mtime)
   .slice(0, limit);
 
-const seen = new Map<string, number>();
 for (const f of files) {
   console.log(`\n${f.path}`);
   try {
@@ -27,16 +27,20 @@ for (const f of files) {
     console.log(`  version ${h.gameVersion} save ${h.saveVersion}, build ${h.build ?? "?"}, ${h.numPlayers} players`);
     for (const p of h.players) {
       if (!p.name && !p.aiName) continue;
-      console.log(`  ${p.number}: ${p.name || "(AI: " + p.aiName + ")"}  profile ${p.profileId}`);
-      if (p.name) seen.set(p.name, (seen.get(p.name) ?? 0) + 1);
+      const mark = p.number === h.ownerNumber ? "  <- recorded from here" : "";
+      console.log(`  ${p.number}: ${(p.name || "(AI: " + p.aiName + ")").padEnd(24)} profile ${String(p.profileId).padEnd(10)}${mark}`);
+    }
+    if (h.ownerNumber !== null && !h.players.some((p) => p.number === h.ownerNumber)) {
+      console.log(`  recorded from player ${h.ownerNumber}, who is not in the list`);
     }
   } catch (err) {
     console.log(`  error: ${(err as Error).message}`);
   }
 }
 
-const ranked = [...seen.entries()].sort((a, b) => b[1] - a[1]);
-if (ranked.length) {
-  console.log(`\nmost frequent name: "${ranked[0][0]}" (${ranked[0][1]} of ${files.length} recordings)`);
-  console.log(`That is most likely your own name. Put it into config.txt under "playerName".`);
+const guess = guessPlayer(cfg.savegameDir);
+if (guess) {
+  console.log(`\nThis folder looks like it belongs to "${guess.name}", profile id ${guess.profileId}.`);
+  console.log(`That perspective wrote ${guess.hits} of the ${guess.files} newest recordings.`);
+  console.log(`Put this into config.txt:  playerProfileId = ${guess.profileId}`);
 }

@@ -8,8 +8,10 @@ Add that URL as a browser source in OBS.
 ## Quick start with the EXE
 
 1. Start `eAPMCounter.exe`. On the first start it creates `config.txt` next to itself and
-   guesses your in-game name from the recent recordings. The window shows the log.
-2. If the guessed name is wrong, set `playerName` in `config.txt` and restart the EXE.
+   works out who you are from your recordings. The window shows the log and the profile
+   id it settled on.
+2. Put that profile id into `config.txt` under `playerProfileId`, or correct it if it is
+   wrong, and restart the EXE.
 3. In OBS add a source of type **Browser** and set its URL to
    `http://localhost:8123/overlay`. Width 200 and height 90 are enough for the number.
    The page has a transparent background, so only the number shows.
@@ -38,7 +40,8 @@ Restart the program after a change, then reload the browser source in OBS.
 
 | Key | Meaning | Default |
 |---|---|---|
-| `playerName` | own name in the game | empty, guessed |
+| `playerProfileId` | own profile id, beats `playerName` | empty, worked out |
+| `playerName` | own name in the game | empty, worked out |
 | `port` | port of the local server | 8123 |
 | `windowSeconds` | length of the time window | 60 |
 | `timeBase` | `game` = game time like CaptureAge, `real` = wall clock time | `game` |
@@ -52,6 +55,23 @@ Restart the program after a change, then reload the browser source in OBS.
 Changing the port also means changing the URL of the browser source in OBS.
 
 The environment variables `EAPM_SAVEGAME_DIR` and `EAPM_PORT` override the file.
+
+## How the program knows who you are
+
+Matching by name breaks as soon as you rename yourself in the game, so the profile id
+decides when it is set. It belongs to your account and never changes.
+
+With neither set, the program works it out. Every recording names the player it was
+written from the perspective of, and for a game your own client recorded that is you.
+A savegame folder also collects recordings from elsewhere, so the program reads the
+newest fifty and takes the perspective that comes up most often.
+
+That perspective is used only to work out who you are, never to decide who to count in
+a single recording. A recording someone else made names them, and counting their actions
+would put a stranger's rate on your stream. When you do not appear in a recording, the
+overlay shows 0, which is also what happens while you watch somebody else's game.
+
+`npm run players` prints the same thing for the newest recordings.
 
 ## What is counted
 
@@ -82,7 +102,7 @@ Checked on 2026-09-19 with build 180059 in a running game:
 
 ## Development
 
-Requirements: Node.js 24 (for building the EXE) and `npm install`.
+Requirements: Node.js 26 (for building the EXE) and `npm install`.
 
 In Windows PowerShell `npm` may be blocked. Use `npm.cmd` instead of `npm`, or
 double-click `start.cmd`.

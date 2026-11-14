@@ -15,7 +15,13 @@ import type { Config } from "./config.ts";
 import { EapmCounter } from "./eapm.ts";
 import { actionName } from "./rec/actions.ts";
 import { BodyParser } from "./rec/body.ts";
-import { bytesNeededForHeader, findPlayerNumber, parseHeader, type RecHeader } from "./rec/header.ts";
+import {
+  bytesNeededForHeader,
+  findPlayerByProfileId,
+  findPlayerNumber,
+  parseHeader,
+  type RecHeader,
+} from "./rec/header.ts";
 
 export interface WatcherState {
   inGame: boolean;
@@ -228,7 +234,14 @@ export class RecWatcher extends EventEmitter {
     c.fingerprint = Buffer.from(buf.subarray(0, FINGERPRINT_BYTES));
     c.parser = new BodyParser({ fileOffset: c.header.bodyOffset, withPrelude: true });
     c.readPos = c.header.bodyOffset;
-    c.myNumber = findPlayerNumber(c.header.players, this.cfg.playerName);
+
+    // The profile id belongs to an account and survives a rename, so it wins when set.
+    // The recording's own perspective is deliberately not used here: a folder also holds
+    // recordings from other people, and counting their actions would report a stranger's
+    // rate as the user's own.
+    c.myNumber =
+      findPlayerByProfileId(c.header.players, this.cfg.playerProfileId) ??
+      findPlayerNumber(c.header.players, this.cfg.playerName);
 
     const list = c.header.players
       .filter((p) => p.name)
@@ -236,7 +249,10 @@ export class RecWatcher extends EventEmitter {
       .join(", ");
     this.log(`players: ${list || "(no names in the header)"}`);
     if (c.myNumber === null) {
-      c.failed = `player name "${this.cfg.playerName}" not found in the recording`;
+      const wanted = this.cfg.playerProfileId
+        ? `profile id ${this.cfg.playerProfileId}`
+        : `player name "${this.cfg.playerName}"`;
+      c.failed = `${wanted} not found in the recording, so nothing is counted`;
       this.log(c.failed);
       return false;
     }

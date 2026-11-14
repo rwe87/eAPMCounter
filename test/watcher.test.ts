@@ -48,6 +48,7 @@ test("watcher: new file, follow along, rename, next game", { skip: !rec }, () =>
     const cfg: Config = {
       savegameDir: dir,
       playerName: me.name,
+      playerProfileId: 0,
       port: 0,
       windowSeconds: 60,
       timeBase: "game",

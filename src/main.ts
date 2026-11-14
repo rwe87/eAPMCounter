@@ -1,6 +1,6 @@
 import { CONFIG_PATH, loadConfigFile } from "./config.ts";
 import { IS_SEA } from "./paths.ts";
-import { guessPlayerName } from "./rec/guess.ts";
+import { guessPlayer } from "./rec/guess.ts";
 import { startServer } from "./server.ts";
 import { RecWatcher } from "./watcher.ts";
 
@@ -29,18 +29,20 @@ function main(): void {
   if (created) log(`settings created: ${CONFIG_PATH}`);
   else log(`settings:     ${CONFIG_PATH}`);
 
-  if (!cfg.playerName) {
-    const guess = guessPlayerName(cfg.savegameDir);
+  if (!cfg.playerProfileId && !cfg.playerName) {
+    const guess = guessPlayer(cfg.savegameDir);
     if (!guess) {
-      fail(`no player name known. Please set "playerName" in ${CONFIG_PATH}.`);
+      fail(`cannot tell who you are. Please set "playerProfileId" or "playerName" in ${CONFIG_PATH}.`);
       return;
     }
+    cfg.playerProfileId = guess.profileId;
     cfg.playerName = guess.name;
-    log(`player name guessed: "${guess.name}" (in ${guess.hits} of ${guess.files} recordings). Set it in ${CONFIG_PATH}.`);
+    log(`you look like "${guess.name}", profile id ${guess.profileId}: that perspective wrote ${guess.hits} of the ${guess.files} newest recordings.`);
+    log(`to settle it, put playerProfileId = ${guess.profileId} into ${CONFIG_PATH}.`);
   }
 
   log(`folder:       ${cfg.savegameDir}`);
-  log(`player:       ${cfg.playerName}`);
+  log(`player:       ${cfg.playerName || "(by profile id)"}${cfg.playerProfileId ? `, profile id ${cfg.playerProfileId}` : ""}`);
   log(`time window:  ${cfg.windowSeconds} s (${cfg.timeBase === "game" ? "game time" : "wall clock"})`);
 
   const watcher = new RecWatcher(cfg, log);

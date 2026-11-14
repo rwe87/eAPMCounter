@@ -37,6 +37,12 @@ export interface RecHeader {
   multiplayer: boolean;
   recordGame: boolean;
   players: RecPlayer[];
+  /**
+   * Player number the recording was written from the perspective of, so the number of
+   * whoever saved it. In a game they watched rather than played, it belongs to no one
+   * in `players`. `null` when the field could not be read.
+   */
+  ownerNumber: number | null;
 }
 
 /** Header length from the first 4 bytes. `null` while fewer than 4 bytes are available. */
@@ -77,6 +83,16 @@ export function parseHeader(file: Buffer): RecHeader {
   }
 
   const de = parseDe(header, saveVersion);
+
+  // The perspective sits past the end of the DE block. Losing it is not worth losing
+  // the player list over, so a failure here only clears that one field.
+  let ownerNumber: number | null = null;
+  try {
+    ownerNumber = parseMetadata(header, saveVersion).ownerNumber;
+  } catch {
+    ownerNumber = null;
+  }
+
   return {
     headerLen,
     bodyOffset: headerLen,
@@ -89,7 +105,45 @@ export function parseHeader(file: Buffer): RecHeader {
     multiplayer: de.multiplayer,
     recordGame: de.recordGame,
     players: de.players,
+    ownerNumber,
   };
+}
+
+/** A run of zeroes this long marks the end of the AI block. */
+const AI_BLOCK_END = Buffer.alloc(4096);
+
+/**
+ * The block after the DE section. Only the perspective is of interest here.
+ * Port of parseMetadata from parse_rec.ts.
+ */
+function parseMetadata(d: Stream, save: number): { ownerNumber: number; numPlayers: number } {
+  const ai = d.u32();
+  if (ai > 0) {
+    // A game against the computer stores its AI database here. Its length is not
+    // written down, so the only way past it is to look for the run of zeroes at its end.
+    const aiEnd = d.buf.indexOf(AI_BLOCK_END, d.pos);
+    if (aiEnd === -1) throw new Error("could not find the end of the ai block");
+    d.seek(aiEnd + AI_BLOCK_END.length);
+  }
+  d.skip(24);
+  d.f32(); // game speed, again
+  d.skip(17);
+  const ownerNumber = d.i16();
+  const numPlayers = d.i8();
+  d.skip(1);
+  d.i8(); // cheats
+  if (save < 61.5) d.skip(60);
+  else d.skip(24 + numPlayers * 4);
+  return { ownerNumber, numPlayers };
+}
+
+/** A run of strings, ended by a small number where the next length would be. */
+function stringBlock(d: Stream): void {
+  for (;;) {
+    const crc = d.u32();
+    if (crc > 0 && crc < 255) break;
+    deString(d);
+  }
 }
 
 function deString(d: Stream): Buffer {
@@ -199,6 +253,75 @@ function parseDe(d: Stream, save: number): DeSection {
     });
   }
 
+  // Everything from here on is read only to move the cursor to the block that holds
+  // the perspective. None of these values is used.
+  d.skip(12);
+  if (save < 66.3 && save >= 37) {
+    for (let i = 0; i < 8 - numPlayers; i++) {
+      if (save >= 61.5) d.skip(4);
+      d.skip(12);
+      deString(d);
+      d.skip(1);
+      deString(d);
+      deString(d);
+      d.skip(38);
+      if (save >= 64.3) d.skip(4);
+    }
+  }
+  d.skip(4);
+  d.i8(); // rated
+  d.i8(); // allow_specs
+  d.u32(); // visibility
+  d.i8(); // hidden_civs
+  d.skip(1);
+  d.u32(); // spec_delay
+  d.skip(1);
+  stringBlock(d);
+  d.skip(8);
+  for (let i = 0; i < 20; i++) stringBlock(d);
+  d.skip(4);
+  if (save < 25.22) d.skip(236);
+  else {
+    d.seek(d.pos - 4);
+    const count = d.u32();
+    d.skip(count * 4);
+  }
+  const blocks = Number(d.u64());
+  for (let i = 0; i < blocks; i++) {
+    d.skip(4);
+    deString(d);
+    d.skip(4);
+  }
+  if (save >= 25.02) d.skip(8);
+  d.skip(16); // guid
+  deString(d); // lobby name
+  if (save >= 25.22) d.skip(8);
+  deString(d); // mod
+  d.skip(27);
+  deString(d); // scenario name, empty in a lobby game
+  d.skip(2);
+  if (save >= 20.06) d.skip(1);
+  if (save >= 20.16) d.skip(8);
+  if (save >= 25.06) d.skip(21);
+  if (save >= 25.22) d.skip(4);
+  if (save >= 26.16) d.skip(8);
+  if (save >= 37) d.skip(3);
+  if (save > 50) d.skip(8);
+  if (save >= 61.5) d.skip(1);
+  if (save >= 63) d.skip(5);
+  if (save >= 66.3) {
+    const count = d.u32();
+    d.skip(12);
+    d.skip(count * 4);
+  }
+  deString(d);
+  d.skip(8);
+  if (save >= 68) d.skip(8);
+  if (save >= 37) {
+    d.u32();
+    d.u32(); // timestamp
+  }
+
   return {
     build,
     speed,
@@ -217,5 +340,15 @@ export function findPlayerNumber(players: RecPlayer[], name: string): number | n
   const wanted = name.trim().toLowerCase();
   if (!wanted) return null;
   const hit = players.find((p) => p.name.trim().toLowerCase() === wanted);
+  return hit ? hit.number : null;
+}
+
+/**
+ * Finds the player number for a profile id. An id belongs to an account and stays the
+ * same when the player renames, so this is the reliable way round.
+ */
+export function findPlayerByProfileId(players: RecPlayer[], profileId: number): number | null {
+  if (!profileId) return null;
+  const hit = players.find((p) => p.profileId === profileId);
   return hit ? hit.number : null;
 }

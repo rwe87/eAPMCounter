@@ -3,7 +3,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { findDefaultSavegameDir } from "../src/config.ts";
-import { findPlayerNumber, parseHeader } from "../src/rec/header.ts";
+import { guessPlayer } from "../src/rec/guess.ts";
+import { findPlayerByProfileId, findPlayerNumber, parseHeader } from "../src/rec/header.ts";
 import { NeedMoreData } from "../src/rec/stream.ts";
 
 function recordings(limit: number): string[] {
@@ -39,13 +40,43 @@ test("an incomplete header reports NeedMoreData", { skip: recs.length === 0 }, (
   assert.throws(() => parseHeader(data.subarray(0, headerLen + 2)), NeedMoreData);
 });
 
+const PLAYERS = [
+  { number: 1, name: "Alice", profileId: 111, colorId: 0, teamId: 1, civilizationId: 1, type: 2, aiName: "" },
+  { number: 2, name: " Bob ", profileId: 222, colorId: 1, teamId: 2, civilizationId: 1, type: 2, aiName: "" },
+];
+
 test("findPlayerNumber ignores case", () => {
-  const players = [
-    { number: 1, name: "Alice", profileId: 1, colorId: 0, teamId: 1, civilizationId: 1, type: 2, aiName: "" },
-    { number: 2, name: " Bob ", profileId: 2, colorId: 1, teamId: 2, civilizationId: 1, type: 2, aiName: "" },
-  ];
-  assert.equal(findPlayerNumber(players, "alice"), 1);
-  assert.equal(findPlayerNumber(players, "BOB"), 2);
-  assert.equal(findPlayerNumber(players, "carol"), null);
-  assert.equal(findPlayerNumber(players, ""), null);
+  assert.equal(findPlayerNumber(PLAYERS, "alice"), 1);
+  assert.equal(findPlayerNumber(PLAYERS, "BOB"), 2);
+  assert.equal(findPlayerNumber(PLAYERS, "carol"), null);
+  assert.equal(findPlayerNumber(PLAYERS, ""), null);
+});
+
+test("findPlayerByProfileId matches the account, not the name", () => {
+  assert.equal(findPlayerByProfileId(PLAYERS, 222), 2);
+  assert.equal(findPlayerByProfileId(PLAYERS, 999), null);
+  // 0 means "not set" and must never match a player.
+  assert.equal(findPlayerByProfileId(PLAYERS, 0), null);
+  const renamed = [{ ...PLAYERS[0], name: "Alice2" }, PLAYERS[1]];
+  assert.equal(findPlayerByProfileId(renamed, 111), 1);
+});
+
+test("every recording names the perspective it was written from", { skip: recs.length === 0 }, () => {
+  for (const rec of recs) {
+    const h = parseHeader(readFileSync(rec));
+    assert.notEqual(h.ownerNumber, null, `${rec}: no perspective read`);
+    const owner = h.players.find((p) => p.number === h.ownerNumber);
+    assert.ok(owner, `${rec}: perspective ${h.ownerNumber} is not one of the players`);
+    assert.ok(owner.name.trim(), `${rec}: the perspective has no name`);
+  }
+});
+
+test("the folder owner is found from the perspectives", { skip: recs.length === 0 }, () => {
+  const dir = process.env.EAPM_SAVEGAME_DIR ?? findDefaultSavegameDir();
+  const guess = guessPlayer(dir!, 50);
+  assert.ok(guess, "no owner found");
+  assert.ok(guess.profileId > 0, "owner without a profile id");
+  assert.ok(guess.name.trim(), "owner without a name");
+  // The owner has to win clearly, otherwise the guess is a coin toss.
+  assert.ok(guess.hits > guess.files / 3, `only ${guess.hits} of ${guess.files} recordings from this perspective`);
 });

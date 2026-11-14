@@ -2,8 +2,12 @@
 # One line per setting: key = value. Lines starting with # are comments.
 # Restart the program after a change.
 
-# Own name in the game. Leave empty to let the program take the name that appears
-# most often in the recent recordings and print it at startup.
+# Who you are. Leave both empty to let the program work it out from your recordings
+# and print what it found at startup.
+#
+# The profile id is the reliable one: it belongs to your account and does not change
+# when you rename yourself in the game. It wins when both are set.
+playerProfileId = 836594
 playerName = rOb
 
 # Port of the local server. The overlay page is at http://localhost:<port>/overlay
